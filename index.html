@@ -96,6 +96,108 @@ body {
 #intro-btn:hover { transform: scale(1.05); box-shadow: 0 0 50px rgba(192,57,90,0.8); }
 
 /* ============================================
+   TRANSIÇÃO ESPETACULAR — presente + fogos
+   ============================================ */
+#reveal-stage {
+  position: fixed; inset: 0;
+  z-index: 10000;
+  background: radial-gradient(ellipse at 50% 60%, #1a0510 0%, #000 80%);
+  display: none;
+  align-items: center; justify-content: center;
+  overflow: hidden;
+}
+#reveal-stage.active { display: flex; }
+#fireworks-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+}
+/* Gift box */
+.gift {
+  position: relative;
+  width: 160px; height: 140px;
+  z-index: 2;
+  transform: scale(0.6);
+  animation: gift-pop 0.6s cubic-bezier(0.2,1.4,0.4,1) forwards;
+}
+@keyframes gift-pop {
+  to { transform: scale(1); }
+}
+.gift-shake { animation: gift-shake 0.4s ease-in-out 3; }
+@keyframes gift-shake {
+  0%,100% { transform: rotate(0) scale(1); }
+  25% { transform: rotate(-5deg) scale(1.03); }
+  75% { transform: rotate(5deg) scale(1.03); }
+}
+.gift-base {
+  position: absolute; bottom: 0; left: 0;
+  width: 160px; height: 100px;
+  background: linear-gradient(135deg, #8b1a3a, #c0395a);
+  border-radius: 6px;
+  box-shadow: inset 0 -10px 20px rgba(0,0,0,0.3), 0 10px 40px rgba(192,57,90,0.5);
+}
+.gift-base::after { /* vertical ribbon */
+  content: '';
+  position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+  width: 26px; height: 100%;
+  background: linear-gradient(90deg, #d4af37, #f0d060, #d4af37);
+}
+.gift-lid {
+  position: absolute; top: 0; left: -8px;
+  width: 176px; height: 44px;
+  background: linear-gradient(135deg, #a02040, #d6476a);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  z-index: 3;
+  transform-origin: center bottom;
+}
+.gift-lid::after {
+  content: '';
+  position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+  width: 30px; height: 100%;
+  background: linear-gradient(90deg, #d4af37, #f0d060, #d4af37);
+}
+.gift-bow {
+  position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
+  font-size: 2.4rem; z-index: 4;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
+.gift.open .gift-lid {
+  animation: lid-fly 0.9s cubic-bezier(0.3,0.7,0.4,1) forwards;
+}
+.gift.open .gift-bow {
+  animation: bow-fly 0.9s cubic-bezier(0.3,0.7,0.4,1) forwards;
+}
+@keyframes lid-fly {
+  0% { transform: translateY(0) rotate(0); opacity: 1; }
+  100% { transform: translateY(-60vh) rotate(40deg); opacity: 0; }
+}
+@keyframes bow-fly {
+  0% { transform: translate(-50%,0) rotate(0); opacity: 1; }
+  100% { transform: translate(-50%,-70vh) rotate(-50deg) scale(1.4); opacity: 0; }
+}
+.gift.open .gift-base {
+  animation: base-glow 1s ease forwards;
+}
+@keyframes base-glow {
+  0% { box-shadow: inset 0 -10px 20px rgba(0,0,0,0.3), 0 10px 40px rgba(192,57,90,0.5); }
+  50% { box-shadow: 0 0 120px 40px rgba(255,230,180,0.95); }
+  100% { box-shadow: 0 0 200px 80px rgba(255,230,180,0); opacity: 0; }
+}
+/* burst of light from inside the box */
+.gift-light {
+  position: absolute; left: 50%; top: 40%;
+  width: 10px; height: 10px; transform: translate(-50%,-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff, rgba(255,230,180,0.6) 40%, transparent 70%);
+  opacity: 0; z-index: 1;
+}
+.gift.open .gift-light { animation: light-burst 1.1s ease-out 0.25s forwards; }
+@keyframes light-burst {
+  0% { width: 10px; height: 10px; opacity: 0.9; }
+  100% { width: 200vmax; height: 200vmax; opacity: 0; }
+}
+
+/* ============================================
    MAIN CONTENT
    ============================================ */
 #main { display: none; position: relative; z-index: 1; }
@@ -682,6 +784,7 @@ body {
   opacity: 0.15;
   animation: float-up linear infinite;
 }
+@keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
 @keyframes float-up {
   from { transform: translateY(100vh) scale(0.5); opacity: 0; }
   10% { opacity: 0.2; }
@@ -731,6 +834,17 @@ footer span { color: var(--rose-gold); }
   <p class="intro-line" id="il2" style="margin-top:2rem;">Para o amor da minha vida.</p>
   <p class="intro-name" id="il3">Para Esther.</p>
   <button id="intro-btn" onclick="startExperience()">Abra seu presente ❤️</button>
+</div>
+
+<!-- TRANSIÇÃO: presente abrindo + fogos -->
+<div id="reveal-stage">
+  <canvas id="fireworks-canvas"></canvas>
+  <div class="gift" id="gift">
+    <div class="gift-light"></div>
+    <div class="gift-base"></div>
+    <div class="gift-lid"></div>
+    <div class="gift-bow">🎀</div>
+  </div>
 </div>
 
 <!-- ============ LIGHTBOX ============ -->
@@ -975,13 +1089,22 @@ function startExperience() {
     });
   }
 
+  // Fade out intro, show the reveal stage (gift + fireworks)
   const intro = document.getElementById('intro');
-  intro.style.transition = 'opacity 1s ease';
+  intro.style.transition = 'opacity 0.6s ease';
   intro.style.opacity = '0';
+
   setTimeout(() => {
     intro.style.display = 'none';
+    const stage = document.getElementById('reveal-stage');
+    stage.classList.add('active');
+    const gift = document.getElementById('gift');
+
+    // Build main content in background (hidden) so it's ready
     document.getElementById('main').style.display = 'block';
+    document.getElementById('main').style.visibility = 'hidden';
     document.getElementById('music-player').style.display = 'block';
+    document.getElementById('music-player').style.visibility = 'hidden';
     spawnFloatingHearts();
     initCounter();
     setupScrollAnimation();
@@ -989,7 +1112,120 @@ function startExperience() {
     buildLoveCards();
     setDogPhoto();
     window.scrollTo(0,0);
-  }, 1000);
+
+    startFireworks();
+
+    // Gift shakes, then opens
+    setTimeout(() => gift.classList.add('gift-shake'), 500);
+    setTimeout(() => {
+      gift.classList.remove('gift-shake');
+      gift.classList.add('open');
+      fireworksFinale();
+    }, 1900);
+
+    // Reveal the page
+    setTimeout(() => {
+      const main = document.getElementById('main');
+      const player = document.getElementById('music-player');
+      main.style.visibility = 'visible';
+      player.style.visibility = 'visible';
+      main.style.animation = 'fadeInPage 1.2s ease forwards';
+      stage.style.transition = 'opacity 1s ease';
+      stage.style.opacity = '0';
+      setTimeout(() => { stage.classList.remove('active'); stopFireworks(); }, 1000);
+    }, 3600);
+  }, 600);
+}
+
+// ============================================
+// FIREWORKS
+// ============================================
+let fwCtx, fwCanvas, fwParticles = [], fwRockets = [], fwRunning = false, fwAnimId = null, fwTimer = null;
+
+function initFireworksCanvas() {
+  fwCanvas = document.getElementById('fireworks-canvas');
+  fwCtx = fwCanvas.getContext('2d');
+  fwCanvas.width = window.innerWidth;
+  fwCanvas.height = window.innerHeight;
+}
+
+function fwRandom(a,b){ return Math.random()*(b-a)+a; }
+const fwColors = ['#ff4d6d','#c9956c','#d4af37','#f0d060','#ff8fab','#ffd1dc','#ffffff','#ffb3c1'];
+
+function explode(x, y) {
+  const color = fwColors[Math.floor(Math.random()*fwColors.length)];
+  const count = 50 + Math.floor(Math.random()*40);
+  for (let i = 0; i < count; i++) {
+    const ang = (Math.PI*2/count)*i;
+    const speed = fwRandom(2, 7);
+    fwParticles.push({
+      x, y,
+      vx: Math.cos(ang)*speed, vy: Math.sin(ang)*speed,
+      life: 1, decay: fwRandom(0.008, 0.02),
+      color, size: fwRandom(1.5, 3.5)
+    });
+  }
+}
+
+function launchRocket(targetX) {
+  const x = targetX !== undefined ? targetX : fwRandom(fwCanvas.width*0.15, fwCanvas.width*0.85);
+  const targetY = fwRandom(fwCanvas.height*0.15, fwCanvas.height*0.45);
+  fwRockets.push({ x, y: fwCanvas.height, tx: x, ty: targetY, vy: fwRandom(-13,-9) });
+}
+
+function fwTick() {
+  if (!fwRunning) return;
+  fwCtx.globalCompositeOperation = 'destination-out';
+  fwCtx.fillStyle = 'rgba(0,0,0,0.18)';
+  fwCtx.fillRect(0,0,fwCanvas.width,fwCanvas.height);
+  fwCtx.globalCompositeOperation = 'lighter';
+
+  // rockets
+  for (let i = fwRockets.length-1; i>=0; i--) {
+    const r = fwRockets[i];
+    r.y += r.vy; r.vy += 0.15;
+    fwCtx.fillStyle = '#fff';
+    fwCtx.beginPath(); fwCtx.arc(r.x, r.y, 2.5, 0, Math.PI*2); fwCtx.fill();
+    if (r.vy >= 0 || r.y <= r.ty) { explode(r.x, r.y); fwRockets.splice(i,1); }
+  }
+  // particles
+  for (let i = fwParticles.length-1; i>=0; i--) {
+    const p = fwParticles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.vx *= 0.99; p.life -= p.decay;
+    if (p.life <= 0) { fwParticles.splice(i,1); continue; }
+    fwCtx.globalAlpha = p.life;
+    fwCtx.fillStyle = p.color;
+    fwCtx.beginPath(); fwCtx.arc(p.x, p.y, p.size, 0, Math.PI*2); fwCtx.fill();
+  }
+  fwCtx.globalAlpha = 1;
+  fwAnimId = requestAnimationFrame(fwTick);
+}
+
+function startFireworks() {
+  initFireworksCanvas();
+  fwRunning = true;
+  fwParticles = []; fwRockets = [];
+  fwTick();
+  // continuous launches
+  fwTimer = setInterval(() => { launchRocket(); }, 450);
+  // initial volley
+  for (let i=0;i<3;i++) setTimeout(launchRocket, i*200);
+}
+
+function fireworksFinale() {
+  // big simultaneous burst when the gift opens
+  for (let i = 0; i < 8; i++) {
+    setTimeout(() => {
+      explode(fwRandom(fwCanvas.width*0.2, fwCanvas.width*0.8), fwRandom(fwCanvas.height*0.15, fwCanvas.height*0.5));
+    }, i*120);
+  }
+}
+
+function stopFireworks() {
+  fwRunning = false;
+  if (fwTimer) clearInterval(fwTimer);
+  if (fwAnimId) cancelAnimationFrame(fwAnimId);
+  if (fwCtx) fwCtx.clearRect(0,0,fwCanvas.width,fwCanvas.height);
 }
 
 // ============================================
